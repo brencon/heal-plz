@@ -12,7 +12,7 @@ Describe your project here. Include:
 - Target audience/users
 -->
 
-[PROJECT_NAME] is a [BRIEF_DESCRIPTION].
+heal-plz is a Self-healing coding platform with enterprise response management and resolution.
 
 ## Architecture
 

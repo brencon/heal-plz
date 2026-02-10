@@ -127,3 +127,5 @@ scripts/pdf-parser/config.yaml
 # Project Specific
 # -------------------------------
 # Add project-specific ignores below this line
+*.db
+.healplz.pid

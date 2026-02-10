@@ -138,12 +138,14 @@ if [[ "$SETUP_COUNCIL" =~ ^[Yy]$ ]]; then
     if command -v python3 &> /dev/null; then
         read -p "  Install Python dependencies for LLM Council? [y/N]: " INSTALL_DEPS
         if [[ "$INSTALL_DEPS" =~ ^[Yy]$ ]]; then
+            python3 -m venv .venv
+            source .venv/bin/activate
             pip install -r scripts/llm-council/requirements.txt
-            success "Installed LLM Council dependencies"
+            success "Installed LLM Council dependencies (venv at .venv)"
         fi
     else
         warn "Python 3 not found. Install dependencies manually:"
-        info "pip install -r scripts/llm-council/requirements.txt"
+        info "python3 -m venv .venv && source .venv/bin/activate && pip install -r scripts/llm-council/requirements.txt"
     fi
 
     echo ""

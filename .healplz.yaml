@@ -1,0 +1,17 @@
+server: http://localhost:8765
+
+repository:
+  owner: brencon
+  name: heal-plz
+
+monitor:
+  logs:
+    - path: /tmp/healplz-server.log
+      patterns: ["ERROR", "CRITICAL", "Traceback", "Exception"]
+
+  file_watch:
+    paths: ["src/", "tests/"]
+    extensions: [".py"]
+    on_change:
+      - command: "ruff check {file}"
+        severity: warning

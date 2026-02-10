@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>heal-plz Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: { DEFAULT: '#0f172a', light: '#1e293b', lighter: '#334155' },
+            accent: { DEFAULT: '#818cf8', dim: '#6366f1' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-surface text-gray-200 min-h-screen">
+  <!-- Header -->
+  <header class="border-b border-surface-lighter px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="text-2xl font-bold text-white tracking-tight">heal-plz</div>
+      <span class="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full font-medium">Dashboard</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="auto-refresh-toggle" class="flex items-center gap-2 cursor-pointer select-none" onclick="toggleAutoRefresh()">
+        <div id="refresh-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+        <span class="text-xs text-gray-400">Auto-refresh</span>
+      </div>
+      <button onclick="refreshAll()" class="text-xs bg-surface-lighter hover:bg-surface-light px-3 py-1.5 rounded-md text-gray-300 transition">
+        Refresh Now
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <!-- Stats Bar -->
+    <div id="stats-bar" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div class="stat-card">
+        <div class="stat-label">Repositories</div>
+        <div class="stat-value" id="stat-repos">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Alerts</div>
+        <div class="stat-value" id="stat-total-alerts">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Alerts</div>
+        <div class="stat-value text-amber-400" id="stat-active-alerts">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open Incidents</div>
+        <div class="stat-value text-red-400" id="stat-open-incidents">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value text-emerald-400" id="stat-resolved">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Heal Rate</div>
+        <div class="stat-value text-accent" id="stat-heal-rate">-</div>
+      </div>
+    </div>
+
+    <!-- Alert Severity Breakdown -->
+    <div class="bg-surface-light rounded-xl border border-surface-lighter p-4">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Active Alerts by Severity</h3>
+      <div class="flex gap-3">
+        <span class="severity-pill severity-critical" id="sev-critical">CRIT: 0</span>
+        <span class="severity-pill severity-high" id="sev-high">HIGH: 0</span>
+        <span class="severity-pill severity-medium" id="sev-medium">MED: 0</span>
+        <span class="severity-pill severity-low" id="sev-low">LOW: 0</span>
+        <span class="severity-pill severity-info" id="sev-info">INFO: 0</span>
+      </div>
+    </div>
+
+    <!-- Active Monitors -->
+    <section class="bg-surface-light rounded-xl border border-surface-lighter">
+      <div class="px-5 py-4 border-b border-surface-lighter">
+        <h2 class="text-sm font-semibold text-white">Active Monitors</h2>
+      </div>
+      <div id="monitors-list" class="divide-y divide-surface-lighter max-h-[200px] overflow-y-auto">
+        <div class="px-5 py-6 text-center text-gray-500 text-sm">Loading monitors...</div>
+      </div>
+    </section>
+
+    <!-- Monitor Detail Panel (hidden until a monitor is clicked) -->
+    <section id="monitor-detail" class="bg-surface-light rounded-xl border border-accent/30 hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-surface-lighter">
+        <div class="flex items-center gap-3">
+          <button onclick="closeMonitorDetail()" class="text-gray-400 hover:text-white transition text-sm">&larr;</button>
+          <h2 class="text-sm font-semibold text-white" id="monitor-detail-name">Monitor</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <div id="monitor-detail-live-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span class="text-xs text-gray-400">Live</span>
+          </div>
+          <button onclick="closeMonitorDetail()" class="text-xs bg-surface-lighter hover:bg-surface px-2 py-1 rounded text-gray-300 transition">Close</button>
+        </div>
+      </div>
+      <div id="monitor-detail-meta" class="px-5 py-3 border-b border-surface-lighter text-xs text-gray-400 flex gap-4"></div>
+      <div class="px-5 py-3 border-b border-surface-lighter">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Events</h3>
+      </div>
+      <div id="monitor-detail-events" class="divide-y divide-surface-lighter max-h-[400px] overflow-y-auto">
+        <div class="px-5 py-8 text-center text-gray-500 text-sm">Loading events...</div>
+      </div>
+    </section>
+
+    <!-- Main Content: Alerts + Incidents side by side -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Active Alerts -->
+      <section class="bg-surface-light rounded-xl border border-surface-lighter">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-surface-lighter">
+          <h2 class="text-sm font-semibold text-white">Active Alerts</h2>
+          <select id="alert-filter" onchange="refreshAlerts()" class="text-xs bg-surface border border-surface-lighter rounded px-2 py-1 text-gray-300">
+            <option value="">All statuses</option>
+            <option value="active" selected>Active</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="escalated">Escalated</option>
+            <option value="suppressed">Suppressed</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div id="alerts-list" class="divide-y divide-surface-lighter max-h-[500px] overflow-y-auto">
+          <div class="px-5 py-8 text-center text-gray-500 text-sm">Loading alerts...</div>
+        </div>
+      </section>
+
+      <!-- Open Incidents -->
+      <section class="bg-surface-light rounded-xl border border-surface-lighter">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-surface-lighter">
+          <h2 class="text-sm font-semibold text-white">Incidents</h2>
+          <select id="incident-filter" onchange="refreshIncidents()" class="text-xs bg-surface border border-surface-lighter rounded px-2 py-1 text-gray-300">
+            <option value="">All statuses</option>
+            <option value="open" selected>Open</option>
+            <option value="investigating">Investigating</option>
+            <option value="root_cause_identified">RCA Identified</option>
+            <option value="fix_in_progress">Fix In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div id="incidents-list" class="divide-y divide-surface-lighter max-h-[500px] overflow-y-auto">
+          <div class="px-5 py-8 text-center text-gray-500 text-sm">Loading incidents...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Recent Activity -->
+    <section class="bg-surface-light rounded-xl border border-surface-lighter">
+      <div class="px-5 py-4 border-b border-surface-lighter">
+        <h2 class="text-sm font-semibold text-white">Recent Activity</h2>
+      </div>
+      <div id="activity-feed" class="divide-y divide-surface-lighter max-h-[300px] overflow-y-auto">
+        <div class="px-5 py-8 text-center text-gray-500 text-sm">Loading activity...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
