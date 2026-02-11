@@ -148,6 +148,28 @@ async def get_incident_pipeline(
     )
 
 
+@router.post("/{incident_id}/pr-merged", response_model=IncidentResponse)
+async def confirm_pr_merged(
+    incident_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> IncidentResponse:
+    repo = IncidentRepository(db)
+    obj = await repo.get(incident_id)
+    if not obj:
+        raise NotFoundError("Incident", str(incident_id))
+    validate_transition(obj.status, IncidentStatus.FIX_MERGED)
+    await repo.update(obj, {"status": IncidentStatus.FIX_MERGED})
+    validate_transition(obj.status, IncidentStatus.VERIFYING)
+    await repo.update(obj, {"status": IncidentStatus.VERIFYING})
+    validate_transition(obj.status, IncidentStatus.RESOLVED)
+    from datetime import datetime
+    updated = await repo.update(obj, {
+        "status": IncidentStatus.RESOLVED,
+        "resolved_at": datetime.utcnow(),
+    })
+    return IncidentResponse.model_validate(updated)
+
+
 @router.post("/{incident_id}/close", response_model=IncidentResponse)
 async def close_incident(
     incident_id: uuid.UUID,

@@ -304,7 +304,7 @@ function renderIncidentActions(incident) {
 async function incidentAction(incidentId, action) {
   try {
     await apiPost(`/incidents/${incidentId}/${action}`);
-    const labels = { close: 'closed', investigate: 'investigation started', heal: 'healing started', reopen: 'reopened' };
+    const labels = { close: 'closed', investigate: 'investigation started', heal: 'healing started', reopen: 'reopened', 'pr-merged': 'merge confirmed — resolved' };
     showToast(`Incident ${labels[action] || action + 'd'}`);
     refreshIncidents();
     refreshStats();
@@ -404,7 +404,7 @@ async function refreshIncidentPipeline() {
 
 function renderPipelineStepper(status, resolutions) {
   const container = document.getElementById('incident-pipeline-stepper');
-  const terminal = { wont_fix: true, closed: true };
+  const terminal = { wont_fix: true, closed: true, resolved: true };
 
   const hasPR = resolutions && resolutions.some(r => r.pr_url);
   const hasFix = resolutions && resolutions.length > 0;
@@ -416,6 +416,11 @@ function renderPipelineStepper(status, resolutions) {
 
   let currentIndex = stages.findIndex(s => s.key === status);
   if (currentIndex === -1) currentIndex = terminal[status] ? stages.length : 0;
+
+  // If status matches the last stage, mark entire pipeline as complete
+  if (currentIndex === stages.length - 1) {
+    currentIndex = stages.length;
+  }
 
   // If a fix was generated (no PR workflow), mark entire pipeline as complete
   const fixingIndex = stages.findIndex(s => s.key === 'fix_in_progress');
@@ -622,6 +627,9 @@ function renderIncidentDetailActions(incident, resolutions) {
   }
   if (incident.status === 'root_cause_identified' && !hasFix) {
     actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'heal')">Generate Fix</button>`);
+  }
+  if (incident.status === 'fix_pending_review') {
+    actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'pr-merged')">Confirm Merge</button>`);
   }
   if (incident.status !== 'closed' && incident.status !== 'resolved') {
     actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'close')">Close</button>`);
