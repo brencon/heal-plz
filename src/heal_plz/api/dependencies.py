@@ -24,3 +24,7 @@ def get_event_bus(request: Request) -> EventBus:
 
 def get_task_manager(request: Request) -> BackgroundTaskManager:
     return request.app.state.task_manager
+
+
+def get_session_factory(request: Request):
+    return request.app.state.db_session_factory

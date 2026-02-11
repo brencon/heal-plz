@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./heal_plz.db"
 
-    # GitHub App
+    # GitHub
+    GITHUB_TOKEN: str = ""
     GITHUB_APP_ID: int = 0
     GITHUB_APP_PRIVATE_KEY: str = ""
     GITHUB_WEBHOOK_SECRET: str = ""

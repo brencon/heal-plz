@@ -5,6 +5,12 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from heal_plz.db.models.incident import IncidentPriority, IncidentStatus
+from heal_plz.schemas.investigation import EvidenceResponse, InvestigationResponse
+from heal_plz.schemas.resolution import (
+    ResolutionResponse,
+    RootCauseResponse,
+    VerificationResponse,
+)
 
 
 class IncidentUpdate(BaseModel):
@@ -46,3 +52,12 @@ class IncidentSummary(BaseModel):
     last_seen_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class IncidentPipelineResponse(BaseModel):
+    incident: IncidentResponse
+    investigation: Optional[InvestigationResponse] = None
+    evidence: list[EvidenceResponse] = []
+    root_causes: list[RootCauseResponse] = []
+    resolutions: list[ResolutionResponse] = []
+    verifications: list[VerificationResponse] = []

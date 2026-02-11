@@ -152,6 +152,38 @@
       </section>
     </div>
 
+    <!-- Incident Detail Panel (hidden until an incident is clicked) -->
+    <section id="incident-detail" class="bg-surface-light rounded-xl border border-accent/30 hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-surface-lighter">
+        <div class="flex items-center gap-3">
+          <button onclick="closeIncidentDetail()" class="text-gray-400 hover:text-white transition text-sm">&larr;</button>
+          <h2 class="text-sm font-semibold text-white" id="incident-detail-title">Incident</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span class="text-xs text-gray-400">Live</span>
+          </div>
+          <button onclick="closeIncidentDetail()" class="text-xs bg-surface-lighter hover:bg-surface px-2 py-1 rounded text-gray-300 transition">Close</button>
+        </div>
+      </div>
+      <!-- Meta bar -->
+      <div id="incident-detail-meta" class="px-5 py-3 border-b border-surface-lighter text-xs text-gray-400 flex flex-wrap gap-4"></div>
+      <!-- Pipeline Stepper -->
+      <div id="incident-pipeline-stepper" class="px-5 py-4 border-b border-surface-lighter"></div>
+      <!-- Investigation Section -->
+      <div id="incident-investigation" class="px-5 py-4 border-b border-surface-lighter hidden"></div>
+      <!-- Root Cause Section -->
+      <div id="incident-rca" class="px-5 py-4 border-b border-surface-lighter hidden"></div>
+      <!-- Resolution / Fix Section -->
+      <div id="incident-resolution" class="px-5 py-4 border-b border-surface-lighter hidden"></div>
+      <!-- Verification Section -->
+      <div id="incident-verification" class="px-5 py-4 border-b border-surface-lighter hidden"></div>
+      <!-- Actions -->
+      <div id="incident-detail-actions" class="px-5 py-3 flex gap-2"></div>
+    </section>
+
     <!-- Recent Activity -->
     <section class="bg-surface-light rounded-xl border border-surface-lighter">
       <div class="px-5 py-4 border-b border-surface-lighter">

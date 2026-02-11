@@ -6,6 +6,7 @@ from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from heal_plz.config import settings
 from heal_plz.core.events import Event, EventBus, EventType
@@ -31,7 +32,9 @@ class InvestigationService:
 
         inc_id = _uuid.UUID(incident_id)
         result = await self.db.execute(
-            select(Incident).where(Incident.id == inc_id)
+            select(Incident)
+            .where(Incident.id == inc_id)
+            .options(selectinload(Incident.repository))
         )
         incident = result.scalar_one_or_none()
         if not incident:
@@ -73,9 +76,9 @@ class InvestigationService:
         repo = incident.repository
         code_context: Optional[CodeContext] = None
 
-        if repo and settings.ANTHROPIC_API_KEY:
+        if repo and settings.GITHUB_TOKEN:
             try:
-                github = GitHubClient(settings.ANTHROPIC_API_KEY)
+                github = GitHubClient(settings.GITHUB_TOKEN)
                 builder = CodeContextBuilder(github)
                 code_context = await builder.build(
                     owner=repo.github_owner,
