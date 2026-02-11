@@ -20,6 +20,12 @@ class GitHubClient:
     async def get_file_content(
         self, owner: str, repo: str, path: str, ref: Optional[str] = None
     ) -> Optional[str]:
+        info = await self.get_file_info(owner, repo, path, ref=ref)
+        return info["content"] if info else None
+
+    async def get_file_info(
+        self, owner: str, repo: str, path: str, ref: Optional[str] = None
+    ) -> Optional[dict[str, str]]:
         url = f"{GITHUB_API_BASE}/repos/{owner}/{repo}/contents/{path}"
         params = {}
         if ref:
@@ -29,10 +35,11 @@ class GitHubClient:
             if resp.status_code != 200:
                 return None
             data = resp.json()
+            content = data.get("content", "")
             if data.get("encoding") == "base64":
                 import base64
-                return base64.b64decode(data["content"]).decode("utf-8")
-            return data.get("content")
+                content = base64.b64decode(content).decode("utf-8")
+            return {"content": content, "sha": data.get("sha", "")}
 
     async def get_commits(
         self,

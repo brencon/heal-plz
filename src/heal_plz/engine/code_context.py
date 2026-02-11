@@ -103,6 +103,15 @@ class CodeContextBuilder:
 
         return context
 
+    def _normalize_repo_path(self, path: str, repo: str) -> Optional[str]:
+        if not path.startswith("/"):
+            return path
+        parts = path.split("/")
+        for i, part in enumerate(parts):
+            if part == repo and i + 1 < len(parts):
+                return "/".join(parts[i + 1:])
+        return None
+
     async def _add_file(
         self,
         context: CodeContext,
@@ -112,8 +121,13 @@ class CodeContextBuilder:
         ref: Optional[str],
         highlight_lines: Optional[list[int]] = None,
     ) -> None:
-        if path.startswith("/") or ".." in path:
+        if ".." in path:
             return
+        if path.startswith("/"):
+            normalized = self._normalize_repo_path(path, repo)
+            if not normalized:
+                return
+            path = normalized
         if path in context.files:
             return
 

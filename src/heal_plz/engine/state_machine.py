@@ -19,6 +19,7 @@ VALID_TRANSITIONS: dict[IncidentStatus, list[IncidentStatus]] = {
     IncidentStatus.FIX_IN_PROGRESS: [
         IncidentStatus.FIX_PENDING_REVIEW,
         IncidentStatus.ROOT_CAUSE_IDENTIFIED,
+        IncidentStatus.RESOLVED,
     ],
     IncidentStatus.FIX_PENDING_REVIEW: [
         IncidentStatus.FIX_MERGED,

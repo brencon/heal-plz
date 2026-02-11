@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import subprocess
 import sys
 from typing import Optional
@@ -15,6 +16,31 @@ app = typer.Typer()
 
 DEFAULT_SERVER = "http://localhost:8765"
 
+_repo_root: Optional[str] = None
+
+
+def _get_repo_root() -> Optional[str]:
+    global _repo_root
+    if _repo_root is None:
+        try:
+            _repo_root = subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            _repo_root = ""
+    return _repo_root or None
+
+
+def _normalize_path(file_path: Optional[str]) -> Optional[str]:
+    if not file_path or not os.path.isabs(file_path):
+        return file_path
+    repo_root = _get_repo_root()
+    if repo_root and file_path.startswith(repo_root + "/"):
+        return file_path[len(repo_root) + 1:]
+    return file_path
+
 
 def _send_error(server: str, owner: str, repo: str, error) -> None:
     payload = {
@@ -23,7 +49,7 @@ def _send_error(server: str, owner: str, repo: str, error) -> None:
         "error_message": error.message,
         "error_type": error.error_type,
         "stacktrace": error.stacktrace,
-        "file_path": error.file_path,
+        "file_path": _normalize_path(error.file_path),
         "line_number": error.line_number,
         "severity": error.severity.value,
     }

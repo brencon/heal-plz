@@ -46,7 +46,9 @@ async def list_incidents(
             repository_id, status=status_filter, offset=offset, limit=limit
         )
     else:
-        results = await repo.list(offset=offset, limit=limit)
+        results = await repo.list_filtered(
+            status=status_filter, offset=offset, limit=limit
+        )
     return [IncidentResponse.model_validate(r) for r in results]
 
 

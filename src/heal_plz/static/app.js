@@ -6,7 +6,7 @@ let monitorDetailTimer = null;
 let activeIncidentId = null;
 let incidentDetailTimer = null;
 
-const PIPELINE_STAGES = [
+const PIPELINE_STAGES_FULL = [
   { key: 'open', label: 'Open' },
   { key: 'investigating', label: 'Investigating' },
   { key: 'root_cause_identified', label: 'RCA' },
@@ -14,6 +14,21 @@ const PIPELINE_STAGES = [
   { key: 'fix_pending_review', label: 'PR Review' },
   { key: 'fix_merged', label: 'Merged' },
   { key: 'verifying', label: 'Verifying' },
+  { key: 'resolved', label: 'Resolved' },
+];
+
+const PIPELINE_STAGES_FIX_ONLY = [
+  { key: 'open', label: 'Open' },
+  { key: 'investigating', label: 'Investigating' },
+  { key: 'root_cause_identified', label: 'RCA' },
+  { key: 'fix_in_progress', label: 'Fixing' },
+  { key: 'resolved', label: 'Resolved' },
+];
+
+const PIPELINE_STAGES_NO_CODE = [
+  { key: 'open', label: 'Open' },
+  { key: 'investigating', label: 'Investigating' },
+  { key: 'root_cause_identified', label: 'RCA' },
   { key: 'resolved', label: 'Resolved' },
 ];
 
@@ -279,10 +294,6 @@ function renderIncidentActions(incident) {
   const actions = [];
   if (incident.status === 'open') {
     actions.push(`<button class="action-btn" onclick="event.stopPropagation(); incidentAction('${incident.id}', 'investigate')">Investigate</button>`);
-    actions.push(`<button class="action-btn" onclick="event.stopPropagation(); incidentAction('${incident.id}', 'close')">Close</button>`);
-  }
-  if (incident.status === 'root_cause_identified') {
-    actions.push(`<button class="action-btn" onclick="event.stopPropagation(); incidentAction('${incident.id}', 'heal')">Heal</button>`);
   }
   if (incident.status === 'closed' || incident.status === 'resolved') {
     actions.push(`<button class="action-btn" onclick="event.stopPropagation(); incidentAction('${incident.id}', 'reopen')">Reopen</button>`);
@@ -380,29 +391,43 @@ async function refreshIncidentPipeline() {
       ${inc.error_category ? `<span class="font-mono">${escapeHtml(inc.error_category)}</span>` : ''}
     `;
 
-    renderPipelineStepper(inc.status);
+    renderPipelineStepper(inc.status, data.resolutions);
     renderInvestigationSection(data.investigation, data.evidence);
     renderRCASection(data.root_causes);
     renderResolutionSection(data.resolutions);
     renderVerificationSection(data.verifications);
-    renderIncidentDetailActions(inc);
+    renderIncidentDetailActions(inc, data.resolutions);
   } catch (e) {
     console.error('Failed to refresh incident pipeline:', e);
   }
 }
 
-function renderPipelineStepper(status) {
+function renderPipelineStepper(status, resolutions) {
   const container = document.getElementById('incident-pipeline-stepper');
   const terminal = { wont_fix: true, closed: true };
 
-  let currentIndex = PIPELINE_STAGES.findIndex(s => s.key === status);
-  if (currentIndex === -1) currentIndex = terminal[status] ? PIPELINE_STAGES.length : 0;
+  const hasPR = resolutions && resolutions.some(r => r.pr_url);
+  const hasFix = resolutions && resolutions.length > 0;
+  const isFixing = status === 'fix_in_progress';
+  let stages;
+  if (hasPR) stages = PIPELINE_STAGES_FULL;
+  else if (hasFix || isFixing) stages = PIPELINE_STAGES_FIX_ONLY;
+  else stages = PIPELINE_STAGES_NO_CODE;
 
-  const steps = PIPELINE_STAGES.map((stage, i) => {
+  let currentIndex = stages.findIndex(s => s.key === status);
+  if (currentIndex === -1) currentIndex = terminal[status] ? stages.length : 0;
+
+  // If a fix was generated (no PR workflow), mark entire pipeline as complete
+  const fixingIndex = stages.findIndex(s => s.key === 'fix_in_progress');
+  if (fixingIndex !== -1 && hasFix && !hasPR && currentIndex <= fixingIndex) {
+    currentIndex = stages.length;
+  }
+
+  const steps = stages.map((stage, i) => {
     let state = 'pending';
     let icon = '';
     if (i < currentIndex) { state = 'completed'; icon = '&#10003;'; }
-    else if (i === currentIndex) { state = 'active'; icon = '&#9679;'; }
+    else if (i === currentIndex && stage.key === status) { state = 'active'; icon = '&#9679;'; }
 
     return `
       <div class="pipeline-step">
@@ -413,7 +438,7 @@ function renderPipelineStepper(status) {
   }).join('');
 
   const fillPercent = currentIndex <= 0 ? 0
-    : Math.min(100, (currentIndex / (PIPELINE_STAGES.length - 1)) * 100);
+    : Math.min(100, (currentIndex / (stages.length - 1)) * 100);
 
   container.innerHTML = `
     <div class="pipeline-stepper">
@@ -588,16 +613,17 @@ function renderVerificationSection(verifications) {
   `;
 }
 
-function renderIncidentDetailActions(incident) {
+function renderIncidentDetailActions(incident, resolutions) {
   const container = document.getElementById('incident-detail-actions');
+  const hasFix = resolutions && resolutions.length > 0;
   const actions = [];
   if (incident.status === 'open') {
     actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'investigate')">Investigate</button>`);
   }
-  if (incident.status === 'root_cause_identified') {
+  if (incident.status === 'root_cause_identified' && !hasFix) {
     actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'heal')">Generate Fix</button>`);
   }
-  if (incident.status !== 'closed') {
+  if (incident.status !== 'closed' && incident.status !== 'resolved') {
     actions.push(`<button class="action-btn" onclick="incidentAction('${incident.id}', 'close')">Close</button>`);
   }
   if (incident.status === 'closed' || incident.status === 'resolved') {

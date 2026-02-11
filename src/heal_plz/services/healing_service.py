@@ -80,6 +80,9 @@ class HealingService:
 
         if not fix_result.success:
             resolution.status = ResolutionStatus.FAILED
+            await incident_service.transition_status(
+                inc_id, IncidentStatus.ROOT_CAUSE_IDENTIFIED
+            )
             await self.db.flush()
             logger.error("Fix generation failed for incident %s", incident_id)
             return resolution
@@ -101,6 +104,9 @@ class HealingService:
 
         if not verification_suite.all_passed:
             resolution.status = ResolutionStatus.FAILED
+            await incident_service.transition_status(
+                inc_id, IncidentStatus.ROOT_CAUSE_IDENTIFIED
+            )
             await self.db.flush()
             logger.warning(
                 "Fix verification failed for incident %s: %s",
@@ -141,6 +147,9 @@ class HealingService:
             )
         else:
             resolution.status = ResolutionStatus.FIX_GENERATED
+            await incident_service.transition_status(
+                inc_id, IncidentStatus.RESOLVED
+            )
 
         await self.db.flush()
 

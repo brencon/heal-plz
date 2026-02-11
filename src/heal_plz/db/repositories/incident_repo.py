@@ -12,6 +12,19 @@ class IncidentRepository(BaseRepository[Incident]):
     def __init__(self, db: AsyncSession) -> None:
         super().__init__(Incident, db)
 
+    async def list_filtered(
+        self,
+        status: Optional[IncidentStatus] = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> list[Incident]:
+        query = select(Incident)
+        if status:
+            query = query.where(Incident.status == status)
+        query = query.order_by(Incident.created_at.desc()).offset(offset).limit(limit)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
     async def get_by_repo(
         self,
         repository_id: uuid.UUID,
