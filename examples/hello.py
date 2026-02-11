@@ -1,5 +1,5 @@
 def greet(name):
-    print("Hello, " + name + "!")
+    print("Hello, " + str(name) + "!")
 
 
 if __name__ == "__main__":
